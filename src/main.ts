@@ -1,0 +1,73 @@
+import axios from "axios";
+
+interface SpotifyApiRequestConfig {
+    access_token: string;
+    query?: Record<string, string>;
+}
+
+class SpotifyApiRequest {
+    url: string;
+    config: SpotifyApiRequestConfig;
+    headers: Record<string, string>;
+    constructor(endpoint: string, config: SpotifyApiRequestConfig) {
+        this.url = "https://api.spotify.com/v1" + (endpoint.startsWith("/") ? "" : "/") + endpoint;
+        this.config = config;
+        this.headers = {
+            "Authorization": "Bearer " + this.config.access_token,
+            "Content-Type": "application/json",
+        };
+    }
+    async get() {
+        const req = axios({
+            method: "get",
+            url: this.url + (new URLSearchParams(this.config.query || {})).toString(),
+            headers: this.headers,
+        });
+
+        req.catch((err) => {
+            console.log(err.config);
+            console.log(err.response.data);
+        });
+
+        const res = await req;
+        return res.data;
+    }
+}
+
+export default async function main(code: string, client_id: string, client_secret: string) {
+    const req = axios({
+        method: "post",
+        url: "https://accounts.spotify.com/api/token",
+        data: (new URLSearchParams({
+            code,
+            redirect_uri: "http://localhost:8101/callback",
+            grant_type: "authorization_code",
+        })).toString(),
+        headers: {
+            "Authorization": "Basic " + (Buffer.from(client_id + ":" + client_secret).toString("base64")),
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        responseType: "json",
+    });
+
+    req.catch((err) => {
+        console.log(err);
+    });
+
+    const res = await req;
+
+    interface AccessTokenResult {
+        access_token: string;
+        token_type: string;
+        scope: string;
+        expires_int: string;
+        refresh_token: string;
+    }
+
+    const data = res.data as AccessTokenResult;
+    const token = data.access_token;
+
+    const request = new SpotifyApiRequest("/me/player/recently-played", { access_token: token });
+    const spotifyRes = await request.get();
+    console.log(spotifyRes.items);
+};
