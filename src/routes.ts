@@ -8,12 +8,12 @@ interface dotenv_config {
 
 const env_vars = process.env as NodeJS.ProcessEnv & Partial<dotenv_config>;
 
-const CLIENT_ID = env_vars.CLIENT_ID || "";
-const CLIENT_SECRET = env_vars.CLIENT_SECRET || "";
+const client_id = env_vars.CLIENT_ID || "";
+const client_secret = env_vars.CLIENT_SECRET || "";
 
-if (!CLIENT_ID)
+if (!client_id)
     throw "NO CLIENT ID";
-if (!CLIENT_SECRET)
+if (!client_secret)
     throw "NO CLIENT SECRET";
 
 const router = express.Router();
@@ -41,7 +41,7 @@ router.get("/callback", (req, res) => {
     } else {
         res.redirect("/?status=success");
 
-        main(code, CLIENT_ID, CLIENT_SECRET);
+        main({ auth: { code, client_id, client_secret } });
     }
 });
 
@@ -50,7 +50,7 @@ router.get("/login", (req, res) => {
 
     const urlParams = {
         response_type: "code",
-        client_id: CLIENT_ID,
+        client_id: client_id,
         scope,
         redirect_uri: "http://localhost:8101/callback",
     };
